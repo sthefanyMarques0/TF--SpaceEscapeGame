@@ -176,12 +176,20 @@ while running:
         if event.type == pygame.QUIT:
             running = False
 
-    # --- Movimento do jogador ---
-    keys = pygame.key.get_pressed()
-    if keys[pygame.K_LEFT] and player_rect.left > 0:
-        player_rect.x -= player_speed
-    if keys[pygame.K_RIGHT] and player_rect.right < WIDTH:
-        player_rect.x += player_speed
+    # --- Movimento do jogador via mouse (apenas mouse ativa o movimento) ---
+    # Obtém a posição do cursor e move a nave para essa posição
+    mx, my = pygame.mouse.get_pos()
+    player_rect.centerx = mx
+    player_rect.centery = my
+    # Garante que a nave permaneça dentro da tela
+    if player_rect.left < 0:
+        player_rect.left = 0
+    if player_rect.right > WIDTH:
+        player_rect.right = WIDTH
+    if player_rect.top < 0:
+        player_rect.top = 0
+    if player_rect.bottom > HEIGHT:
+        player_rect.bottom = HEIGHT
 
     # --- Movimento dos meteoros ---
     for meteor in meteor_list:
