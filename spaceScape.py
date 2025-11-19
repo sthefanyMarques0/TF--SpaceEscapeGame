@@ -40,16 +40,14 @@ pygame.display.set_caption("🚀 Space Escape")
 # e troque apenas os nomes abaixo.
 
 ASSETS = {
-    "background":
-    [
-    "fundo_espacial.png"
-    "fundo_espacial2.jpg",
-     "fundo_espacial3.png"] ,                         # imagem de fundo (padrão)
+    "background": "fundo_espacial.jpg",                         # imagem de fundo (padrão)
     "player": "nave001.png",                                    # imagem da nave
     "meteor": "meteoro001.png",                                 # imagem do meteoro
     "sound_point": "classic-game-action-positive-5-224402.mp3", # som ao desviar com sucesso
     "sound_hit": "stab-f-01-brvhrtz-224599.mp3",                # som de colisão
-    "music": "distorted-future-363866.mp3"          # música de fundo. direitos: Music by Maksym Malko from Pixabay
+    "music": "distorted-future-363866.mp3",           # música de fundo. direitos: Music by Maksym Malko from Pixabay
+    "victory_screen": "Tela_vitoria.png",              # tela de vitória
+    "defeat_screen": "Tela_Derrota.png"                # tela de derrota
 }
 
 # ----------------------------------------------------------
@@ -91,6 +89,10 @@ def load_image(filename, fallback_color, size=None):
 # Carrega imagens
 player_img = load_image(ASSETS["player"], BLUE, (80, 60))
 meteor_img = load_image(ASSETS["meteor"], RED, (40, 40))
+
+# Carrega imagens de telas finais (vitória e derrota)
+victory_screen = load_image(ASSETS["victory_screen"], WHITE, (WIDTH, HEIGHT))
+defeat_screen = load_image(ASSETS["defeat_screen"], WHITE, (WIDTH, HEIGHT))
 
 # Carrega fundos das fases
 backgrounds = []
@@ -160,6 +162,10 @@ def set_level(idx):
 
 score = 0
 lives = 3
+# Pontuação necessária para vencer
+WIN_SCORE = 30
+# razão do fim do jogo: None | 'victory' | 'defeat'
+game_over_reason = None
 font = pygame.font.Font(None, 36)
 clock = pygame.time.Clock()
 running = True
@@ -212,6 +218,11 @@ while running:
             if new_level_idx != current_level_idx:
                 set_level(new_level_idx)
 
+            # Verifica condição de vitória por pontuação
+            if score >= WIN_SCORE:
+                game_over_reason = 'victory'
+                running = False
+
         # Colisão
         if meteor.colliderect(player_rect):
             lives -= 1
@@ -220,6 +231,7 @@ while running:
             if sound_hit:
                 sound_hit.play()
             if lives <= 0:
+                game_over_reason = 'defeat'
                 running = False
 
     # --- Desenha tudo ---
@@ -246,11 +258,21 @@ if mixer_initialized:
         pygame.mixer.music.stop()
     except pygame.error:
         pass
-screen.fill((20, 20, 20))
-end_text = font.render("Fim de jogo! Pressione qualquer tecla para sair.", True, WHITE)
-final_score = font.render(f"Pontuação final: {score}", True, WHITE)
-screen.blit(end_text, (150, 260))
-screen.blit(final_score, (300, 300))
+
+# Exibe a tela apropriada (vitória ou derrota)
+if game_over_reason == 'victory':
+    screen.blit(victory_screen, (0, 0))
+elif game_over_reason == 'defeat':
+    screen.blit(defeat_screen, (0, 0))
+else:
+    # Fallback genérico
+    screen.fill((20, 20, 20))
+
+# Exibe a pontuação final no rodapé
+final_score_text = pygame.font.Font(None, 48).render(f"Pontuação final: {score}", True, WHITE)
+final_score_rect = final_score_text.get_rect(center=(WIDTH // 2, HEIGHT - 50))
+screen.blit(final_score_text, final_score_rect)
+
 pygame.display.flip()
 
 waiting = True
