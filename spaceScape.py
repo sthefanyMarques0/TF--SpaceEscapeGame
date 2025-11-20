@@ -65,6 +65,35 @@ except pygame.error:
 # 🔧 CONFIGURAÇÕES GERAIS DO JOGO
 # ----------------------------------------------------------
 WIDTH, HEIGHT = 800, 600
+
+# Constantes e funções de High Score
+HIGHSCORES_FILE = "highscores.txt"
+MAX_HIGHSCORES = 5
+
+def load_highscores():
+    scores = []
+    if os.path.exists(HIGHSCORES_FILE):
+        with open(HIGHSCORES_FILE, "r") as f:
+            for line in f:
+                line = line.strip()
+                if line.isdigit():
+                    scores.append(int(line))
+    scores.sort(reverse=True)
+    return scores[:MAX_HIGHSCORES]
+
+
+def save_highscores(scores):
+    with open(HIGHSCORES_FILE, "w") as f:
+        for s in scores[:MAX_HIGHSCORES]:
+            f.write(str(s) + "\n")
+
+
+def update_highscores(new_score):
+    scores = load_highscores()
+    scores.append(new_score)
+    scores.sort(reverse=True)
+    save_highscores(scores)
+
 FPS = 60
 pygame.display.set_caption("🚀 Space Escape")
 
