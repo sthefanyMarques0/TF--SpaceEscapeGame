@@ -152,7 +152,24 @@ def load_image(filename, fallback_color, size=None):
 
 # Carrega imagens
 player_img = load_image(ASSETS["player"], BLUE, (80, 60))
-meteor_img = load_image(ASSETS["meteor"], RED, (40, 40))
+meteor_base = load_image("meteoro001.png", RED, (40, 40))
+
+life_meteor_img = load_image(ASSETS["life_meteor"], (0, 255, 0), (40, 40))
+LIFE_METEOR_COUNT = 2
+
+
+# Gera alguns frames rotacionados a partir da imagem
+meteor_frames = []
+angles = [-10, -5, 0, 5, 10, 5, 0, -5]  # sequência para dar impressão de "balanço"
+
+for ang in angles:
+    frame = pygame.transform.rotate(meteor_base, ang)
+    meteor_frames.append(frame)
+
+meteor_anim_index = 0
+meteor_anim_timer = 0
+METEOR_ANIM_SPEED = 5  # quanto menor, mais rápida a troca de frames
+
 
 # Carrega imagens de telas finais (vitória e derrota)
 victory_screen = load_image(ASSETS["victory_screen"], WHITE, (WIDTH, HEIGHT))
