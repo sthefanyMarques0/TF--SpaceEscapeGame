@@ -111,7 +111,8 @@ ASSETS = {
     "sound_hit": "stab-f-01-brvhrtz-224599.mp3",                # som de colisão
     "music": "distorted-future-363866.mp3",           # música de fundo. direitos: Music by Maksym Malko from Pixabay
     "victory_screen": "Tela_vitoria.png",              # tela de vitória
-    "defeat_screen": "Tela_Derrota.png"                # tela de derrota
+    "defeat_screen": "Tela_Derrota.png",                # tela de derrota
+    "life_meteor": "meteoro_vida.png"                   # meteoro especial que dá vida             
 }
 
 # ----------------------------------------------------------
@@ -185,6 +186,49 @@ for lvl in LEVELS:
 current_level_idx = 0
 background = backgrounds[current_level_idx]
 
+def show_intro_screen():
+    intro = True
+    font_big = pygame.font.Font(None, 72)
+    font_small = pygame.font.Font(None, 36)
+
+    while intro:
+        # fundo da primeira fase na tela de introdução
+        screen.blit(backgrounds[0], (0,0))
+
+        title = font_big.render("SPACE ESCAPE", True, WHITE)
+        title_rect = title.get_rect(center=(WIDTH // 2, 100))
+        screen.blit(title, title_rect)
+
+        # High Scores
+        scores = load_highscores()
+        y = 200
+        hs_title = font_small.render("High Scores:", True, WHITE)
+        screen.blit(hs_title, (WIDTH // 2 - 80, y))
+        y += 40
+
+        if scores:
+            for i, s in enumerate(scores, start=1):
+                txt = font_small.render(f"{i}. {s}", True, WHITE)
+                screen.blit(txt, (WIDTH // 2 - 50, y))
+                y += 30
+        else:
+            txt = font_small.render("Pressione qualquer tecla para começar", True, WHITE)
+            screen.blit(txt, (WIDTH // 2 - 80, y))
+        
+        instr = font_small.render("Pressione qualquer tecla para começar", True, WHITE)
+        instr_rect = instr.get_rect(center=(WIDTH // 2, HEIGHT - 100))
+        screen.blit(instr, instr_rect)
+
+        pygame.display.flip()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                raise SystemExit
+            if event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN:
+                intro = False
+
+
 # Sons
 def load_sound(filename):
     # Se o mixer não estiver disponível, não tentamos carregar sons
@@ -232,6 +276,9 @@ def make_meteors(count):
         lst.append(pygame.Rect(x, y, 40, 40))
     return lst
 
+
+life_meteors = make_meteors(LIFE_METEOR_COUNT)
+
 # Inicializa meteoros de acordo com o nível inicial
 meteor_list = make_meteors(LEVELS[current_level_idx]["meteor_count"])
 meteor_speed = LEVELS[current_level_idx]["meteor_speed"]
@@ -262,9 +309,97 @@ font = pygame.font.Font(None, 36)
 clock = pygame.time.Clock()
 running = True
 
+# Tela de escolha: continuar jogo salvo ou começar novo
+def show_start_screen():
+    font_big = pygame.font.Font(None, 72)
+    font_small = pygame.font.Font(None, 36)
+    running_screen = True
+
+    while running_screen:
+        screen.fill((10, 10, 30))
+
+        title = font_big.render("SPACE ESCAPE", True, WHITE)
+        screen.blit(title, (WIDTH//2 - title.get_width()//2, 150))
+
+        continue_msg = font_small.render("1 - Continuar jogo salvo", True, WHITE)
+        new_msg = font_small.render("2 - Novo jogo", True, WHITE)
+        quit_msg = font_small.render("ESC - Sair", True, WHITE)
+
+        # posiciona as opções em linhas separadas para evitar sobreposição
+        x = WIDTH // 2 - 150
+        y = 300
+        gap = 40
+        cont_pos = (x, y)
+        new_pos = (x, y + gap)
+        quit_pos = (x, y + 2 * gap)
+        screen.blit(continue_msg, cont_pos)
+        screen.blit(new_msg, new_pos)
+        screen.blit(quit_msg, quit_pos)
+
+        # cria rects para tornar as opções clicáveis
+        cont_rect = continue_msg.get_rect(topleft=cont_pos)
+        new_rect = new_msg.get_rect(topleft=new_pos)
+        quit_rect = quit_msg.get_rect(topleft=quit_pos)
+
+        pygame.display.flip()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                raise SystemExit
+            if event.type == pygame.KEYDOWN:
+                # DEBUG: loga tecla pressionada
+                try:
+                    print(f"DEBUG: KEYDOWN {event.key}")
+                except Exception:
+                    pass
+                if event.key == pygame.K_1 or event.key == pygame.K_KP1:
+                    print("DEBUG: selecionado 'continue' via teclado")
+                    return "continue"
+                if event.key == pygame.K_2 or event.key == pygame.K_KP2:
+                    print("DEBUG: selecionado 'new' via teclado")
+                    reset_save()
+                    return "new"
+                if event.key == pygame.K_ESCAPE:
+                    pygame.quit()
+                    raise SystemExit
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                mx, my = event.pos
+                print(f"DEBUG: MOUSEBUTTONDOWN at {mx},{my}")
+                if cont_rect.collidepoint(mx, my):
+                    print("DEBUG: selecionado 'continue' via mouse")
+                    return "continue"
+                if new_rect.collidepoint(mx, my):
+                    print("DEBUG: selecionado 'new' via mouse")
+                    reset_save()
+                    return "new"
+                if quit_rect.collidepoint(mx, my):
+                    pygame.quit()
+                    raise SystemExit
+                
+start_option = show_start_screen()
+
+if start_option == "continue":
+    saved = load_game()
+    if saved:
+        score = saved["score"]
+        lives = saved["lives"]
+        current_level_idx = saved["level"]
+        background = backgrounds[current_level_idx]
+        meteor_speed = LEVELS[current_level_idx]["meteor_speed"]
+        player_rect.centerx = saved["player_x"]
+        player_rect.centery = saved["player_y"]
+        # reajusta os meteoros conforme o nível salvo
+        set_level(current_level_idx)
+
+
 # ----------------------------------------------------------
 # 🕹️ LOOP PRINCIPAL
 # ----------------------------------------------------------
+
+# mostra a tela introdutória uma vez antes do loop principal
+show_intro_screen()
+
 while running:
     clock.tick(FPS)
     screen.blit(background, (0, 0))
@@ -434,7 +569,13 @@ while running:
     level_text = font.render(f"{level_name}", True, WHITE)
     screen.blit(level_text, (WIDTH - 180, 10))
 
+    save_game() # salva automaticamente durante o jogo
+
     pygame.display.flip()
+
+
+# Atualiza High Scores
+update_highscores(score)
 
 # ----------------------------------------------------------
 # 🏁 TELA DE FIM DE JOGO
@@ -466,5 +607,7 @@ while waiting:
     for event in pygame.event.get():
         if event.type == pygame.QUIT or event.type == pygame.KEYDOWN:
             waiting = False
+
+reset_save() # evita carregar um jogo já terminado
 
 pygame.quit()
