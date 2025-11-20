@@ -213,6 +213,17 @@ if mixer_initialized and os.path.exists(ASSETS["music"]):
 player_rect = player_img.get_rect(center=(WIDTH // 2, HEIGHT - 60))
 player_speed = 7
 
+# --- Armas / Projéteis ---
+# lista de projéteis ativos (cada projétil é um pygame.Rect)
+bullets = []
+# velocidade dos projéteis (pixels por frame)
+BULLET_SPEED = 12
+# tamanho do projétil
+BULLET_SIZE = (6, 12)
+# cooldown entre tiros em milissegundos
+FIRE_COOLDOWN_MS = 200
+last_shot_time = 0
+
 def make_meteors(count):
     lst = []
     for _ in range(count):
@@ -262,6 +273,24 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+        # Disparo: clique esquerdo do mouse ou barra de espaço
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 1:  # botão esquerdo
+                now = pygame.time.get_ticks()
+                if now - last_shot_time >= FIRE_COOLDOWN_MS:
+                    # cria um projétil na frente da nave
+                    bx = player_rect.centerx - BULLET_SIZE[0] // 2
+                    by = player_rect.top - BULLET_SIZE[1]
+                    bullets.append(pygame.Rect(bx, by, BULLET_SIZE[0], BULLET_SIZE[1]))
+                    last_shot_time = now
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_SPACE:
+                now = pygame.time.get_ticks()
+                if now - last_shot_time >= FIRE_COOLDOWN_MS:
+                    bx = player_rect.centerx - BULLET_SIZE[0] // 2
+                    by = player_rect.top - BULLET_SIZE[1]
+                    bullets.append(pygame.Rect(bx, by, BULLET_SIZE[0], BULLET_SIZE[1]))
+                    last_shot_time = now
 
     # --- Movimento do jogador via mouse (apenas mouse ativa o movimento) ---
     # Obtém a posição do cursor e move a nave para essa posição
