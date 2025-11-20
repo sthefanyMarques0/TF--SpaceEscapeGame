@@ -14,6 +14,41 @@ import pygame
 import random
 import os
 
+# Cria arquivos de salvamento e funções auxiliares
+SAVE_FILE = "savegame.json"
+
+def save_game():
+    data = {
+        "score": score,
+        "lives": lives,
+        "level": current_level_idx,
+        "player_x": player_rect.centerx,
+        "player_y": player_rect.centery
+    }
+    with open(SAVE_FILE, "w") as f:
+        import json
+        json.dump(data, f)
+
+
+def load_game():
+    if not os.path.exists(SAVE_FILE):
+        return None
+    
+    try:
+        import json
+        with open(SAVE_FILE, "r") as f:
+            data = json.load(f)
+            return data
+    except FileNotFoundError:
+        data = {}
+        return None
+
+
+def reset_save():
+    if os.path.exists(SAVE_FILE):
+        os.remove(SAVE_FILE)
+
+
 # Inicializa o PyGame
 pygame.init()
 # Inicializa o mixer de áudio explicitamente; em alguns ambientes o mixer
