@@ -297,11 +297,87 @@ while running:
             if lives <= 0:
                 game_over_reason = 'defeat'
                 running = False
+        
+    # --- Movimento dos meteoros de vida (meteoros especiais) ---
+    for meteor in life_meteors:
+        meteor.y += meteor_speed  # pode usar outra velocidade se quiser
+
+        # Se sair da tela, reposiciona
+        if meteor.y > HEIGHT:
+            meteor.y = random.randint(-200, -40)
+            meteor.x = random.randint(0, WIDTH - meteor.width)
+
+        # Colisão com a nave -> ganha vida extra
+        if meteor.colliderect(player_rect):
+            # aqui tu decide se é +1 ou +2 vidas
+            lives += 1
+            # se quiser limitar o máximo de vidas:
+            # lives = min(lives + 1, 5)
+
+            # reposiciona o meteoro para cima
+            meteor.y = random.randint(-200, -40)
+            meteor.x = random.randint(0, WIDTH - meteor.width)
+
+    
+    # Atualiza animação dos meteoros
+    meteor_anim_timer += 1
+    if meteor_anim_timer >= METEOR_ANIM_SPEED:
+        meteor_anim_timer = 0
+        meteor_anim_index = (meteor_anim_index + 1) % len(meteor_frames)
+    
+
+    # --- Movimento dos projéteis ---
+    # atualiza posição, remove projéteis fora da tela e detecta colisões
+    for b in bullets[:]:
+        b.y -= BULLET_SPEED
+        # projétil saiu da tela
+        if b.bottom < 0:
+            try:
+                bullets.remove(b)
+            except ValueError:
+                pass
+            continue
+
+        # verifica colisão com meteoros regulares
+        hit = False
+        for meteor in meteor_list:
+            if b.colliderect(meteor):
+                # 'destrói' o meteoro reposicionando-o lá em cima
+                meteor.y = random.randint(-200, -40)
+                meteor.x = random.randint(0, WIDTH - meteor.width)
+                # aumenta a pontuação por destruir
+                score += 2
+                if sound_point:
+                    sound_point.play()
+                # remove o projétil
+                try:
+                    bullets.remove(b)
+                except ValueError:
+                    pass
+                hit = True
+                break
+        if hit:
+            # pula para o próximo projétil
+            continue
+
 
     # --- Desenha tudo ---
     screen.blit(player_img, player_rect)
+
+    # Desenha projéteis
+    for b in bullets:
+        pygame.draw.rect(screen, WHITE, b)
+
     for meteor in meteor_list:
-        screen.blit(meteor_img, meteor)
+        frame = meteor_frames[meteor_anim_index]
+        # centraliza o frame no rect (porque a imagem rotacionada pode ficar maior)
+        rect = frame.get_rect(center=meteor.center)
+        screen.blit(frame, rect)
+        
+    # Meteoros de vida
+    for meteor in life_meteors:
+        screen.blit(life_meteor_img, meteor)
+
 
     # --- Exibe pontuação e vidas ---
     text = font.render(f"Pontos: {score}   Vidas: {lives}", True, WHITE)
