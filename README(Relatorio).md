@@ -129,6 +129,7 @@ HUD com pontos, vidas e nível
 --------------------------------------------------------
 
 # imagem da tabela de Niveis, Velocidade dos meteoros e pontos
+![WhatsApp Image 2025-11-22 at 11 16 59](https://github.com/user-attachments/assets/590232cf-ed27-428a-affb-522161f70d5f)
 
 
 ------------------------------------------------------
