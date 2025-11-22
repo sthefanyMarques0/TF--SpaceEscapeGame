@@ -14,41 +14,6 @@ import pygame
 import random
 import os
 
-# Cria arquivos de salvamento e funções auxiliares
-SAVE_FILE = "savegame.json"
-
-def save_game():
-    data = {
-        "score": score,
-        "lives": lives,
-        "level": current_level_idx,
-        "player_x": player_rect.centerx,
-        "player_y": player_rect.centery
-    }
-    with open(SAVE_FILE, "w") as f:
-        import json
-        json.dump(data, f)
-
-
-def load_game():
-    if not os.path.exists(SAVE_FILE):
-        return None
-    
-    try:
-        import json
-        with open(SAVE_FILE, "r") as f:
-            data = json.load(f)
-            return data
-    except FileNotFoundError:
-        data = {}
-        return None
-
-
-def reset_save():
-    if os.path.exists(SAVE_FILE):
-        os.remove(SAVE_FILE)
-
-
 # Inicializa o PyGame
 pygame.init()
 # Inicializa o mixer de áudio explicitamente; em alguns ambientes o mixer
@@ -65,35 +30,6 @@ except pygame.error:
 # 🔧 CONFIGURAÇÕES GERAIS DO JOGO
 # ----------------------------------------------------------
 WIDTH, HEIGHT = 800, 600
-
-# Constantes e funções de High Score
-HIGHSCORES_FILE = "highscores.txt"
-MAX_HIGHSCORES = 5
-
-def load_highscores():
-    scores = []
-    if os.path.exists(HIGHSCORES_FILE):
-        with open(HIGHSCORES_FILE, "r") as f:
-            for line in f:
-                line = line.strip()
-                if line.isdigit():
-                    scores.append(int(line))
-    scores.sort(reverse=True)
-    return scores[:MAX_HIGHSCORES]
-
-
-def save_highscores(scores):
-    with open(HIGHSCORES_FILE, "w") as f:
-        for s in scores[:MAX_HIGHSCORES]:
-            f.write(str(s) + "\n")
-
-
-def update_highscores(new_score):
-    scores = load_highscores()
-    scores.append(new_score)
-    scores.sort(reverse=True)
-    save_highscores(scores)
-
 FPS = 60
 pygame.display.set_caption("🚀 Space Escape")
 
@@ -111,8 +47,7 @@ ASSETS = {
     "sound_hit": "stab-f-01-brvhrtz-224599.mp3",                # som de colisão
     "music": "distorted-future-363866.mp3",           # música de fundo. direitos: Music by Maksym Malko from Pixabay
     "victory_screen": "Tela_vitoria.png",              # tela de vitória
-    "defeat_screen": "Tela_Derrota.png",                # tela de derrota
-    "life_meteor": "meteoro_vida.png"                   # meteoro especial que dá vida             
+    "defeat_screen": "Tela_Derrota.png"                # tela de derrota
 }
 
 # ----------------------------------------------------------
@@ -153,24 +88,7 @@ def load_image(filename, fallback_color, size=None):
 
 # Carrega imagens
 player_img = load_image(ASSETS["player"], BLUE, (80, 60))
-meteor_base = load_image("meteoro001.png", RED, (40, 40))
-
-life_meteor_img = load_image(ASSETS["life_meteor"], (0, 255, 0), (40, 40))
-LIFE_METEOR_COUNT = 2
-
-
-# Gera alguns frames rotacionados a partir da imagem
-meteor_frames = []
-angles = [-10, -5, 0, 5, 10, 5, 0, -5]  # sequência para dar impressão de "balanço"
-
-for ang in angles:
-    frame = pygame.transform.rotate(meteor_base, ang)
-    meteor_frames.append(frame)
-
-meteor_anim_index = 0
-meteor_anim_timer = 0
-METEOR_ANIM_SPEED = 5  # quanto menor, mais rápida a troca de frames
-
+meteor_img = load_image(ASSETS["meteor"], RED, (40, 40))
 
 # Carrega imagens de telas finais (vitória e derrota)
 victory_screen = load_image(ASSETS["victory_screen"], WHITE, (WIDTH, HEIGHT))
@@ -185,49 +103,6 @@ for lvl in LEVELS:
 # Nível inicial (index em LEVELS)
 current_level_idx = 0
 background = backgrounds[current_level_idx]
-
-def show_intro_screen():
-    intro = True
-    font_big = pygame.font.Font(None, 72)
-    font_small = pygame.font.Font(None, 36)
-
-    while intro:
-        # fundo da primeira fase na tela de introdução
-        screen.blit(backgrounds[0], (0,0))
-
-        title = font_big.render("SPACE ESCAPE", True, WHITE)
-        title_rect = title.get_rect(center=(WIDTH // 2, 100))
-        screen.blit(title, title_rect)
-
-        # High Scores
-        scores = load_highscores()
-        y = 200
-        hs_title = font_small.render("High Scores:", True, WHITE)
-        screen.blit(hs_title, (WIDTH // 2 - 80, y))
-        y += 40
-
-        if scores:
-            for i, s in enumerate(scores, start=1):
-                txt = font_small.render(f"{i}. {s}", True, WHITE)
-                screen.blit(txt, (WIDTH // 2 - 50, y))
-                y += 30
-        else:
-            txt = font_small.render("Pressione qualquer tecla para começar", True, WHITE)
-            screen.blit(txt, (WIDTH // 2 - 80, y))
-        
-        instr = font_small.render("Pressione qualquer tecla para começar", True, WHITE)
-        instr_rect = instr.get_rect(center=(WIDTH // 2, HEIGHT - 100))
-        screen.blit(instr, instr_rect)
-
-        pygame.display.flip()
-
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                raise SystemExit
-            if event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN:
-                intro = False
-
 
 # Sons
 def load_sound(filename):
@@ -257,17 +132,6 @@ if mixer_initialized and os.path.exists(ASSETS["music"]):
 player_rect = player_img.get_rect(center=(WIDTH // 2, HEIGHT - 60))
 player_speed = 7
 
-# --- Armas / Projéteis ---
-# lista de projéteis ativos (cada projétil é um pygame.Rect)
-bullets = []
-# velocidade dos projéteis (pixels por frame)
-BULLET_SPEED = 12
-# tamanho do projétil
-BULLET_SIZE = (6, 12)
-# cooldown entre tiros em milissegundos
-FIRE_COOLDOWN_MS = 200
-last_shot_time = 0
-
 def make_meteors(count):
     lst = []
     for _ in range(count):
@@ -275,9 +139,6 @@ def make_meteors(count):
         y = random.randint(-500, -40)
         lst.append(pygame.Rect(x, y, 40, 40))
     return lst
-
-
-life_meteors = make_meteors(LIFE_METEOR_COUNT)
 
 # Inicializa meteoros de acordo com o nível inicial
 meteor_list = make_meteors(LEVELS[current_level_idx]["meteor_count"])
@@ -309,97 +170,9 @@ font = pygame.font.Font(None, 36)
 clock = pygame.time.Clock()
 running = True
 
-# Tela de escolha: continuar jogo salvo ou começar novo
-def show_start_screen():
-    font_big = pygame.font.Font(None, 72)
-    font_small = pygame.font.Font(None, 36)
-    running_screen = True
-
-    while running_screen:
-        screen.fill((10, 10, 30))
-
-        title = font_big.render("SPACE ESCAPE", True, WHITE)
-        screen.blit(title, (WIDTH//2 - title.get_width()//2, 150))
-
-        continue_msg = font_small.render("1 - Continuar jogo salvo", True, WHITE)
-        new_msg = font_small.render("2 - Novo jogo", True, WHITE)
-        quit_msg = font_small.render("ESC - Sair", True, WHITE)
-
-        # posiciona as opções em linhas separadas para evitar sobreposição
-        x = WIDTH // 2 - 150
-        y = 300
-        gap = 40
-        cont_pos = (x, y)
-        new_pos = (x, y + gap)
-        quit_pos = (x, y + 2 * gap)
-        screen.blit(continue_msg, cont_pos)
-        screen.blit(new_msg, new_pos)
-        screen.blit(quit_msg, quit_pos)
-
-        # cria rects para tornar as opções clicáveis
-        cont_rect = continue_msg.get_rect(topleft=cont_pos)
-        new_rect = new_msg.get_rect(topleft=new_pos)
-        quit_rect = quit_msg.get_rect(topleft=quit_pos)
-
-        pygame.display.flip()
-
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                raise SystemExit
-            if event.type == pygame.KEYDOWN:
-                # DEBUG: loga tecla pressionada
-                try:
-                    print(f"DEBUG: KEYDOWN {event.key}")
-                except Exception:
-                    pass
-                if event.key == pygame.K_1 or event.key == pygame.K_KP1:
-                    print("DEBUG: selecionado 'continue' via teclado")
-                    return "continue"
-                if event.key == pygame.K_2 or event.key == pygame.K_KP2:
-                    print("DEBUG: selecionado 'new' via teclado")
-                    reset_save()
-                    return "new"
-                if event.key == pygame.K_ESCAPE:
-                    pygame.quit()
-                    raise SystemExit
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                mx, my = event.pos
-                print(f"DEBUG: MOUSEBUTTONDOWN at {mx},{my}")
-                if cont_rect.collidepoint(mx, my):
-                    print("DEBUG: selecionado 'continue' via mouse")
-                    return "continue"
-                if new_rect.collidepoint(mx, my):
-                    print("DEBUG: selecionado 'new' via mouse")
-                    reset_save()
-                    return "new"
-                if quit_rect.collidepoint(mx, my):
-                    pygame.quit()
-                    raise SystemExit
-                
-start_option = show_start_screen()
-
-if start_option == "continue":
-    saved = load_game()
-    if saved:
-        score = saved["score"]
-        lives = saved["lives"]
-        current_level_idx = saved["level"]
-        background = backgrounds[current_level_idx]
-        meteor_speed = LEVELS[current_level_idx]["meteor_speed"]
-        player_rect.centerx = saved["player_x"]
-        player_rect.centery = saved["player_y"]
-        # reajusta os meteoros conforme o nível salvo
-        set_level(current_level_idx)
-
-
 # ----------------------------------------------------------
 # 🕹️ LOOP PRINCIPAL
 # ----------------------------------------------------------
-
-# mostra a tela introdutória uma vez antes do loop principal
-show_intro_screen()
-
 while running:
     clock.tick(FPS)
     screen.blit(background, (0, 0))
@@ -408,24 +181,6 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-        # Disparo: clique esquerdo do mouse ou barra de espaço
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            if event.button == 1:  # botão esquerdo
-                now = pygame.time.get_ticks()
-                if now - last_shot_time >= FIRE_COOLDOWN_MS:
-                    # cria um projétil na frente da nave
-                    bx = player_rect.centerx - BULLET_SIZE[0] // 2
-                    by = player_rect.top - BULLET_SIZE[1]
-                    bullets.append(pygame.Rect(bx, by, BULLET_SIZE[0], BULLET_SIZE[1]))
-                    last_shot_time = now
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_SPACE:
-                now = pygame.time.get_ticks()
-                if now - last_shot_time >= FIRE_COOLDOWN_MS:
-                    bx = player_rect.centerx - BULLET_SIZE[0] // 2
-                    by = player_rect.top - BULLET_SIZE[1]
-                    bullets.append(pygame.Rect(bx, by, BULLET_SIZE[0], BULLET_SIZE[1]))
-                    last_shot_time = now
 
     # --- Movimento do jogador via mouse (apenas mouse ativa o movimento) ---
     # Obtém a posição do cursor e move a nave para essa posição
@@ -463,7 +218,7 @@ while running:
             if new_level_idx != current_level_idx:
                 set_level(new_level_idx)
 
-            # Verifica condição de vitória por pontuação
+# Condições de vitória (ex.: atingir uma pontuação específica)
             if score >= WIN_SCORE:
                 game_over_reason = 'victory'
                 running = False
@@ -478,87 +233,11 @@ while running:
             if lives <= 0:
                 game_over_reason = 'defeat'
                 running = False
-        
-    # --- Movimento dos meteoros de vida (meteoros especiais) ---
-    for meteor in life_meteors:
-        meteor.y += meteor_speed  # pode usar outra velocidade se quiser
-
-        # Se sair da tela, reposiciona
-        if meteor.y > HEIGHT:
-            meteor.y = random.randint(-200, -40)
-            meteor.x = random.randint(0, WIDTH - meteor.width)
-
-        # Colisão com a nave -> ganha vida extra
-        if meteor.colliderect(player_rect):
-            # aqui tu decide se é +1 ou +2 vidas
-            lives += 1
-            # se quiser limitar o máximo de vidas:
-            # lives = min(lives + 1, 5)
-
-            # reposiciona o meteoro para cima
-            meteor.y = random.randint(-200, -40)
-            meteor.x = random.randint(0, WIDTH - meteor.width)
-
-    
-    # Atualiza animação dos meteoros
-    meteor_anim_timer += 1
-    if meteor_anim_timer >= METEOR_ANIM_SPEED:
-        meteor_anim_timer = 0
-        meteor_anim_index = (meteor_anim_index + 1) % len(meteor_frames)
-    
-
-    # --- Movimento dos projéteis ---
-    # atualiza posição, remove projéteis fora da tela e detecta colisões
-    for b in bullets[:]:
-        b.y -= BULLET_SPEED
-        # projétil saiu da tela
-        if b.bottom < 0:
-            try:
-                bullets.remove(b)
-            except ValueError:
-                pass
-            continue
-
-        # verifica colisão com meteoros regulares
-        hit = False
-        for meteor in meteor_list:
-            if b.colliderect(meteor):
-                # 'destrói' o meteoro reposicionando-o lá em cima
-                meteor.y = random.randint(-200, -40)
-                meteor.x = random.randint(0, WIDTH - meteor.width)
-                # aumenta a pontuação por destruir
-                score += 2
-                if sound_point:
-                    sound_point.play()
-                # remove o projétil
-                try:
-                    bullets.remove(b)
-                except ValueError:
-                    pass
-                hit = True
-                break
-        if hit:
-            # pula para o próximo projétil
-            continue
-
 
     # --- Desenha tudo ---
     screen.blit(player_img, player_rect)
-
-    # Desenha projéteis
-    for b in bullets:
-        pygame.draw.rect(screen, WHITE, b)
-
     for meteor in meteor_list:
-        frame = meteor_frames[meteor_anim_index]
-        # centraliza o frame no rect (porque a imagem rotacionada pode ficar maior)
-        rect = frame.get_rect(center=meteor.center)
-        screen.blit(frame, rect)
-        
-    # Meteoros de vida
-    for meteor in life_meteors:
-        screen.blit(life_meteor_img, meteor)
-
+        screen.blit(meteor_img, meteor)
 
     # --- Exibe pontuação e vidas ---
     text = font.render(f"Pontos: {score}   Vidas: {lives}", True, WHITE)
@@ -569,13 +248,7 @@ while running:
     level_text = font.render(f"{level_name}", True, WHITE)
     screen.blit(level_text, (WIDTH - 180, 10))
 
-    save_game() # salva automaticamente durante o jogo
-
     pygame.display.flip()
-
-
-# Atualiza High Scores
-update_highscores(score)
 
 # ----------------------------------------------------------
 # 🏁 TELA DE FIM DE JOGO
@@ -607,7 +280,5 @@ while waiting:
     for event in pygame.event.get():
         if event.type == pygame.QUIT or event.type == pygame.KEYDOWN:
             waiting = False
-
-reset_save() # evita carregar um jogo já terminado
 
 pygame.quit()
