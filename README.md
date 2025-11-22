@@ -4,8 +4,9 @@ Space Escape é um jogo arcade desenvolvido em Python + Pygame, onde o jogador c
 
 Este projeto foi desenvolvido com fins acadêmicos, seguindo a estrutura sugerida pelo Prof. Filipo Novo Mor.
 -----------------------------------------------------
-
-Alunos: Sthefany Marques da Fonseca e João Madruga.
+Alunos: 
+Sthefany Marques da Fonseca, user: sthefanyMarques0
+João Madruga, user: JPMadruga01
 
 ---------------------------------------------------
 🛠️ Instalação
